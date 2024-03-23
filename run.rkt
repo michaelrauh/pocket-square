@@ -50,22 +50,36 @@
     (define current-book (make-book-from-file filename))
     (display "finished reading file\n")
 
+    (displayln "finding new squares.")
     (define current-squares (make-all-squares current-book))
+
+    (displayln "found this many: ")
+    (displayln (length current-squares))
+    
     (displayln "Adding this many squares: ")
     (displayln (length (get-net-new old-registry current-squares)))
 
+    (displayln "Adding to registry.")
     (define new-registry (registry-add old-registry current-squares))
-
+    
+    (displayln "Combining library.")
     (define new-book (combine-books old-book current-book))
-    (define merge-squares (new-squares old-book current-book new-book))
-    (displayln "merging together this many squares: ")
-    (displayln (length (get-net-new new-registry merge-squares)))
-    (define merge-registry (registry-add new-registry merge-squares))
 
+    (displayln "calculating squares discovered via merge.")
+    (define merge-squares (new-squares old-book current-book new-book))
+    
+    (displayln "discovered: ")
+    (displayln (length (get-net-new new-registry merge-squares)))
+
+    (displayln "updating registry with merge information.")
+    (define merge-registry (registry-add new-registry merge-squares))
+    
+    (displayln "saving bookshelf")
     (define bookshelf-out (open-output-file "bookshelf.bin" #:exists 'replace))
     (write (serialize new-book) bookshelf-out)
     (close-output-port bookshelf-out)
 
+    (displayln "saving registry")
     (define registry-out (open-output-file "registry.bin" #:exists 'replace))
     (write (serialize merge-registry) registry-out)
     (close-output-port registry-out)
