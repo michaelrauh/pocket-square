@@ -20,3 +20,5 @@
     (make-ortho a b c d))))
 
 (define (example-square) (make-squares (example-book) (example-line)))
+
+(example-square)

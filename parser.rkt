@@ -8,8 +8,11 @@
 
 (struct book (raw splines lines points) #:transparent)
 
-(define (input-from-file)
-  (make-book (read-file "example-short.txt")))
+(define (example-book)
+  (make-book-from-file "minimal-example.txt"))
+
+(define (make-book-from-file filename)
+  (make-book (read-file filename)))
 
 (define (get-sentences s)
   (map string-downcase (map string-trim (string-split s #px"\\.|\\?|\\;|\\!"))))
@@ -50,8 +53,7 @@
 (define (get-lines book)
   (book-lines book))
 
-(define (example-book)
-  (input-from-file))
-
 (define (example-line)
   (list "a" "b"))
+
+(example-book)
