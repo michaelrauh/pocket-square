@@ -9,9 +9,6 @@
   (make-additional-squares book (get-lines book)))
 
 (define (make-additional-squares book lines)
-  (print "processing ")
-  (print (length lines))
-  (println " lines")
   (remove-duplicates (map (λ (a) (make-squares book a)) lines)))
 
 (define (make-squares book line)
