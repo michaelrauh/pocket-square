@@ -1,3 +1,4 @@
 .stack-work/
 *~
-example.txt
+example*
+compiled
