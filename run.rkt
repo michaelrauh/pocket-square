@@ -1,5 +1,6 @@
 #lang racket
 (require "square.rkt" "merge.rkt" "book.rkt" "registry.rkt")
+(require racket/serialize)
 (provide example-run)
 (define (example-run)
   (define r (make-registry))
@@ -23,3 +24,53 @@
   (define r3 (registry-add r2 s3))
   
   'done)
+
+
+(define (sequential-stateful-run-bootstrap)
+  (define bookshelf-out (open-output-file "bookshelf.bin" #:exists 'replace))
+  (write (serialize (empty-book)) bookshelf-out)
+  (close-output-port bookshelf-out)
+
+  (define registry-out (open-output-file "registry.bin" #:exists 'replace))
+  (write (serialize (make-registry)) registry-out)
+  (close-output-port registry-out)
+  
+  (let loop ()
+    (define bookshelf-in (open-input-file "bookshelf.bin"))
+    (define old-book (deserialize (read bookshelf-in)))
+    (close-input-port bookshelf-in)
+
+    (define registry-in (open-input-file "registry.bin"))
+    (define old-registry (deserialize (read registry-in)))
+    (close-input-port registry-in)
+    
+    (display "Input a filename or quit: ")
+    (define filename (read-line (current-input-port) 'any))
+    
+    (define current-book (make-book-from-file filename))
+    (display "finished reading file\n")
+
+    (define current-squares (make-all-squares current-book))
+    (displayln "Adding this many squares: ")
+    (displayln (length (get-net-new old-registry current-squares)))
+
+    (define new-registry (registry-add old-registry current-squares))
+
+    (define new-book (combine-books old-book current-book))
+    (define merge-squares (new-squares old-book current-book new-book))
+    (displayln "merging together this many squares: ")
+    (displayln (length (get-net-new new-registry merge-squares)))
+    (define merge-registry (registry-add new-registry merge-squares))
+
+    (define bookshelf-out (open-output-file "bookshelf.bin" #:exists 'replace))
+    (write (serialize new-book) bookshelf-out)
+    (close-output-port bookshelf-out)
+
+    (define registry-out (open-output-file "registry.bin" #:exists 'replace))
+    (write (serialize merge-registry) registry-out)
+    (close-output-port registry-out)
+    
+    (loop)))
+
+(sequential-stateful-run-bootstrap)
+

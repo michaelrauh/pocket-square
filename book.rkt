@@ -1,12 +1,13 @@
 #lang racket
 (require 2htdp/batch-io
          threading)
-(provide project-forward project-backward get-lines example-book example-line make-book-from-text example-book-left example-book-right combine-books new-lines make-book-from-file)
+(require racket/serialize)
+(provide project-forward project-backward get-lines example-book example-line make-book-from-text example-book-left example-book-right combine-books new-lines make-book-from-file empty-book)
 (struct spline (points))
 (struct line (lhs rhs))
 (struct point (data))
 
-(struct book (raw splines lines points) #:transparent)
+(serializable-struct book (raw splines lines points) #:transparent)
 
 (define (example-book)
   (make-book-from-file "minimal-example.txt"))
@@ -76,3 +77,5 @@
   (set-symmetric-difference (book-lines book1) (book-lines book2)))
 
 (define (example-combined-book) (combine-books (example-book-left) (example-book-right)))
+
+(define (empty-book) (book "" '() '() '()))
