@@ -27,6 +27,7 @@
 
 
 (define (sequential-stateful-run-bootstrap)
+  (displayln "deleting databases.")
   (define bookshelf-out (open-output-file "bookshelf.bin" #:exists 'replace))
   (write (serialize (empty-book)) bookshelf-out)
   (close-output-port bookshelf-out)
@@ -34,8 +35,10 @@
   (define registry-out (open-output-file "registry.bin" #:exists 'replace))
   (write (serialize (make-registry)) registry-out)
   (close-output-port registry-out)
+  (displayln "done.")
   
   (let loop ()
+    (displayln "loading previous state.")
     (define bookshelf-in (open-input-file "bookshelf.bin"))
     (define old-book (deserialize (read bookshelf-in)))
     (close-input-port bookshelf-in)
@@ -44,11 +47,11 @@
     (define old-registry (deserialize (read registry-in)))
     (close-input-port registry-in)
     
-    (display "Input a filename or quit: ")
+    (display "input a filename or quit: ")
     (define filename (read-line (current-input-port) 'any))
     
     (define current-book (make-book-from-file filename))
-    (display "finished reading file\n")
+    (displayln "finished reading file.")
 
     (displayln "finding new squares.")
     (define current-squares (make-all-squares current-book))
@@ -56,13 +59,13 @@
     (displayln "found this many: ")
     (displayln (length current-squares))
     
-    (displayln "Adding this many squares: ")
+    (displayln "adding this many squares: ")
     (displayln (length (get-net-new old-registry current-squares)))
 
-    (displayln "Adding to registry.")
+    (displayln "adding to registry.")
     (define new-registry (registry-add old-registry current-squares))
     
-    (displayln "Combining library.")
+    (displayln "combining library.")
     (define new-book (combine-books old-book current-book))
 
     (displayln "calculating squares discovered via merge.")
@@ -74,15 +77,16 @@
     (displayln "updating registry with merge information.")
     (define merge-registry (registry-add new-registry merge-squares))
     
-    (displayln "saving bookshelf")
+    (displayln "saving bookshelf.")
     (define bookshelf-out (open-output-file "bookshelf.bin" #:exists 'replace))
     (write (serialize new-book) bookshelf-out)
     (close-output-port bookshelf-out)
 
-    (displayln "saving registry")
+    (displayln "saving registry.")
     (define registry-out (open-output-file "registry.bin" #:exists 'replace))
     (write (serialize merge-registry) registry-out)
     (close-output-port registry-out)
+    (displayln "finished saving.")
     
     (loop)))
 
