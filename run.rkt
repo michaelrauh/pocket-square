@@ -25,9 +25,8 @@
   
   'done)
 
-
-(define (sequential-stateful-run-bootstrap)
-  (displayln "deleting databases.")
+(define (bootstrap)
+   (displayln "deleting databases.")
   (define bookshelf-out (open-output-file "bookshelf.bin" #:exists 'replace))
   (write (serialize (empty-book)) bookshelf-out)
   (close-output-port bookshelf-out)
@@ -35,8 +34,14 @@
   (define registry-out (open-output-file "registry.bin" #:exists 'replace))
   (write (serialize (make-registry)) registry-out)
   (close-output-port registry-out)
-  (displayln "done.")
-  
+  (displayln "done."))
+
+
+(define (sequential-stateful-run-bootstrap)
+ (bootstrap)
+ (sequential-stateful-run))
+
+(define (sequential-stateful-run)
   (let loop ()
     (displayln "loading previous state.")
     (define bookshelf-in (open-input-file "bookshelf.bin"))
@@ -78,14 +83,22 @@
     (define merge-registry (registry-add new-registry merge-squares))
     
     (displayln "saving bookshelf.")
-    (define bookshelf-out (open-output-file "bookshelf.bin" #:exists 'replace))
+    (define bookshelf-out (open-output-file "bookshelf-temp.bin" #:exists 'replace))
     (write (serialize new-book) bookshelf-out)
     (close-output-port bookshelf-out)
-
+ 
     (displayln "saving registry.")
-    (define registry-out (open-output-file "registry.bin" #:exists 'replace))
-    (write (serialize merge-registry) registry-out)
+    (displayln "serializing registry.")
+    (define to_write (serialize merge-registry))
+    (displayln "saving registry to file.")
+    (define registry-out (open-output-file "registry-temp.bin" #:exists 'replace))
+    (write to_write registry-out)
     (close-output-port registry-out)
+    (displayln "finished saving registry.")
+    
+    (displayln "overwriting previous database")
+    (rename-file-or-directory "bookshelf-temp.bin" "bookshelf.bin" #t)
+    (rename-file-or-directory "registry-temp.bin" "registry.bin" #t)
     (displayln "finished saving.")
     
     (loop)))
