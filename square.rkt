@@ -11,11 +11,17 @@
 (define (make-additional-squares book lines)
   (remove-duplicates (map (λ (a) (make-squares-ffbb book a)) lines)))
 
-(define (make-additional-both-ways book lines)
+(define (make-additional-both-ways book old-book new-book lines)
   (remove-duplicates (append
-                      (map (λ (a) (make-squares-ffbb book a)) lines)
-                      (map (λ (a) (make-squares-fbbf book a)) lines)
-                      ))) ; check for friends before calling each
+                      (for/list
+                          ([line lines]
+                           #:when (friends-do-not-all-match-forward old-book new-book line))
+                        (make-squares-ffbb book line))
+                      (for/list
+                          ([line lines]
+                           #:when (friends-do-not-all-match-backward old-book new-book line))
+                        (make-squares-fbbf book line))
+                      )))
 
 (define (make-squares-ffbb book line)
   (define a (car line))

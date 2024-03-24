@@ -2,7 +2,9 @@
 (require 2htdp/batch-io
          threading)
 (require racket/serialize)
-(provide project-forward project-backward get-lines example-book example-line make-book-from-text example-book-left example-book-right combine-books new-lines make-book-from-file empty-book)
+(provide project-forward project-backward get-lines example-book example-line make-book-from-text
+         example-book-left example-book-right combine-books new-lines make-book-from-file empty-book
+         friends-do-not-all-match-backward friends-do-not-all-match-forward)
 (struct spline (points))
 (struct line (lhs rhs))
 (struct point (data))
@@ -79,3 +81,15 @@
 (define (example-combined-book) (combine-books (example-book-left) (example-book-right)))
 
 (define (empty-book) (book "" '() '() '()))
+
+(define (friends-do-not-all-match-backward old-book new-book line)
+  (not (equal? (friend-forward old-book line) (friend-forward new-book line))))
+
+(define (friends-do-not-all-match-forward old-book new-book line)
+  (not (equal? (friend-backward old-book line) (friend-backward new-book line))))
+
+(define (friend-forward book line)
+  (list->set (append (project-forward book (car line)) (project-forward book (cadr line)))))
+
+(define (friend-backward book line)
+  (list->set (append (project-backward book (car line)) (project-backward book (cadr line)))))
