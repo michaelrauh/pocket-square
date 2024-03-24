@@ -73,8 +73,8 @@
    (remove-duplicates (append (book-lines left) (book-lines right)))
    (remove-duplicates (append (book-points left) (book-points right)))))
 
-(define (new-lines book1 book2)
-  (set-symmetric-difference (book-lines book1) (book-lines book2)))
+(define (new-lines old new)
+  (set-subtract (book-lines new) (book-lines old)))
 
 (define (example-combined-book) (combine-books (example-book-left) (example-book-right)))
 
