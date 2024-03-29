@@ -1,27 +1,16 @@
 #lang racket
 (require "book.rkt")
-(provide make-additional-squares make-all-squares make-additional-both-ways)
+(provide make-all-squares make-squares-ffbb make-squares-fbbf)
+(require racket/trace)
 
 (define (make-ortho a b c d)
-  (hash (hash) a (hash b 1) b (hash c 1) c (hash b 1 c 1) d))
+  ; (hash (hash) a (hash b 1) b (hash c 1) c (hash b 1 c 1) d)) ; todo comment this back in
+  (list a b c d))
+
+; todo remove fbbf from regular run. Use only in merge
 
 (define (make-all-squares book)
-  (make-additional-squares book (get-lines book)))
-
-(define (make-additional-squares book lines)
-  (remove-duplicates (map (λ (a) (make-squares-ffbb book a)) lines)))
-
-(define (make-additional-both-ways book old-book new-book lines)
-  (remove-duplicates (append
-                      (for/list
-                          ([line lines]
-                           #:when (friends-do-not-all-match-forward old-book new-book line))
-                        (make-squares-ffbb book line))
-                      (for/list
-                          ([line lines]
-                           #:when (friends-do-not-all-match-backward old-book new-book line))
-                        (make-squares-fbbf book line))
-                      )))
+  (remove-duplicates (apply append (map (λ (a) (make-squares-ffbb book a)) (get-lines book)))))
 
 (define (make-squares-ffbb book line)
   (define a (car line))

@@ -43,6 +43,20 @@
 
 (define (sequential-stateful-run)
   (let loop ()
+    (time (go))
+    (loop)
+  ))
+
+(define (bootstrap-run-list)
+  (bootstrap)
+  (run-list))
+
+(define (run-list)
+  (display "input a list of filenames or quit: ")
+  (define filenames (read-line (current-input-port) 'any))
+  (map (λ (filename) (time (run-with-filename filename))) (string-split filenames)))
+
+(define (run-with-filename filename)
     (displayln "loading previous state.")
     (define bookshelf-in (open-input-file "bookshelf.bin"))
     (define old-book (deserialize (read bookshelf-in)))
@@ -52,8 +66,8 @@
     (define old-registry (deserialize (read registry-in)))
     (close-input-port registry-in)
     
-    (display "input a filename or quit: ")
-    (define filename (read-line (current-input-port) 'any))
+    (displayln "running filename: ")
+    (displayln filename)
     
     (define current-book (make-book-from-file filename))
     (displayln "finished reading file.")
@@ -63,6 +77,7 @@
 
     (displayln "found this many: ")
     (displayln (length current-squares))
+    ;(displayln (make-all-squares current-book))
     
     (displayln "adding this many squares: ")
     (displayln (length (get-net-new old-registry current-squares)))
@@ -78,6 +93,7 @@
     
     (displayln "discovered: ")
     (displayln (length (get-net-new new-registry merge-squares)))
+    ;(displayln (get-net-new new-registry merge-squares))
 
     (displayln "updating registry with merge information.")
     (define merge-registry (registry-add new-registry merge-squares))
@@ -99,9 +115,70 @@
     (displayln "overwriting previous database")
     (rename-file-or-directory "bookshelf-temp.bin" "bookshelf.bin" #t)
     (rename-file-or-directory "registry-temp.bin" "registry.bin" #t)
-    (displayln "finished saving.")
-    
-    (loop)))
+    (displayln "finished saving."))
+  
+  
 
-(sequential-stateful-run-bootstrap)
+(define (go)
+    (displayln "loading previous state.")
+    (define bookshelf-in (open-input-file "bookshelf.bin"))
+    (define old-book (deserialize (read bookshelf-in)))
+    (close-input-port bookshelf-in)
+
+    (define registry-in (open-input-file "registry.bin"))
+    (define old-registry (deserialize (read registry-in)))
+    (close-input-port registry-in)
+    
+    (display "input a filename or quit: ")
+    (define filename (read-line (current-input-port) 'any))
+    
+    (define current-book (make-book-from-file filename))
+    (displayln "finished reading file.")
+
+    (displayln "finding new squares.")
+    (define current-squares (make-all-squares current-book))
+
+    (displayln "found this many: ")
+    (displayln (length current-squares))
+    ;(displayln (make-all-squares current-book))
+    
+    (displayln "adding this many squares: ")
+    (displayln (length (get-net-new old-registry current-squares)))
+
+    (displayln "adding to registry.")
+    (define new-registry (registry-add old-registry current-squares))
+    
+    (displayln "combining library.")
+    (define new-book (combine-books old-book current-book))
+
+    (displayln "calculating squares discovered via merge.")
+    (define merge-squares (new-squares old-book current-book new-book))
+    
+    (displayln "discovered: ")
+    (displayln (length (get-net-new new-registry merge-squares)))
+    ;(displayln (get-net-new new-registry merge-squares))
+
+    (displayln "updating registry with merge information.")
+    (define merge-registry (registry-add new-registry merge-squares))
+    
+    (displayln "saving bookshelf.")
+    (define bookshelf-out (open-output-file "bookshelf-temp.bin" #:exists 'replace))
+    (write (serialize new-book) bookshelf-out)
+    (close-output-port bookshelf-out)
+ 
+    (displayln "saving registry.")
+    (displayln "serializing registry.")
+    (define to_write (serialize merge-registry))
+    (displayln "saving registry to file.")
+    (define registry-out (open-output-file "registry-temp.bin" #:exists 'replace))
+    (write to_write registry-out)
+    (close-output-port registry-out)
+    (displayln "finished saving registry.")
+    
+    (displayln "overwriting previous database")
+    (rename-file-or-directory "bookshelf-temp.bin" "bookshelf.bin" #t)
+    (rename-file-or-directory "registry-temp.bin" "registry.bin" #t)
+    (displayln "finished saving."))
+
+(bootstrap-run-list)
 
