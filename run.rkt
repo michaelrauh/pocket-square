@@ -117,13 +117,14 @@
   (define current-registry (result-registry res2))
 
   (define current-squares (get-squares current-registry))
+  (define old-squares (get-squares old-registry))
 
   (define new-registry (registry-add old-registry current-squares))
   (displayln (string-append "adding this many squares: "
                             (number->string (length (get-net-new old-registry current-squares)))
                             " out of a possible: "
                             (number->string (length current-squares))
-                            " (" (number->string (* 100 (/ (length (get-net-new old-registry current-squares)) (exact->inexact (length current-squares))))) "%)"))
+                            " (" (number->string (* 100 (/ (length (get-net-new old-registry current-squares)) (exact->inexact (length current-squares))))) "%) " "to a registry with: " (number->string (length old-squares)) " squares preexisting"))
   (define new-book (combine-books old-book current-book))
   (displayln "merging...")
   (define merge-squares (new-squares old-book current-book new-book))
