@@ -1,5 +1,5 @@
 #lang racket
-(provide make-registry registry-add get-net-new)
+(provide make-registry registry-add get-net-new get-squares)
 (require racket/trace)
 
 
@@ -18,3 +18,6 @@
   (set-subtract os r))
 
 ;(trace registry-add)
+
+(define (get-squares r)
+  r)

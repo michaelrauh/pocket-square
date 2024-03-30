@@ -1,32 +1,13 @@
 #lang racket
-(require "square.rkt" "merge.rkt" "book.rkt" "registry.rkt")
-(require racket/serialize)
-(provide example-run)
-(define (example-run)
-  (define r (make-registry))
-
-  ;(define b1 (make-book-from-file "example.txt"))
-  ;(define b2 (make-book-from-file "example2.txt"))
-
-  (define b1 (make-book-from-text "a b. c d. a c. b d. e f. g h."))
-  (define s1 (make-all-squares b1))
-  (println (length (get-net-new r s1)))
-  (define r1 (registry-add r s1))
-
-  (define b2 (make-book-from-text "a b. c d. a c. b d. e g. f h."))
-  (define s2 (make-all-squares b2))
-  (println (length (get-net-new r1 s2)))
-  (define r2 (registry-add r1 s2))
-  
-  (define b3 (combine-books b1 b2))
-  (define s3 (new-squares b1 b2 b3))
-  (println (length (get-net-new r2 s3)))
-  (define r3 (registry-add r2 s3))
-  
-  'done)
+(require "square.rkt"
+         "merge.rkt"
+         "book.rkt"
+         "registry.rkt")
+(require racket/serialize
+         racket/trace)
 
 (define (bootstrap)
-   (displayln "deleting databases.")
+  (displayln "deleting databases.")
   (define bookshelf-out (open-output-file "bookshelf.bin" #:exists 'replace))
   (write (serialize (empty-book)) bookshelf-out)
   (close-output-port bookshelf-out)
@@ -36,16 +17,14 @@
   (close-output-port registry-out)
   (displayln "done."))
 
+(define (bootstrap-binary)
+  (bootstrap)
+  (binary-list))
 
-(define (sequential-stateful-run-bootstrap)
- (bootstrap)
- (sequential-stateful-run))
-
-(define (sequential-stateful-run)
-  (let loop ()
-    (time (go))
-    (loop)
-  ))
+(define (binary-list)
+  (display "input a list of filenames or quit: ")
+  (define filenames (read-line (current-input-port) 'any))
+  (time (binary-merge (map file-to-result (string-split filenames)))))
 
 (define (bootstrap-run-list)
   (bootstrap)
@@ -56,129 +35,102 @@
   (define filenames (read-line (current-input-port) 'any))
   (map (λ (filename) (time (run-with-filename filename))) (string-split filenames)))
 
+(define (load filename)
+  (define registry-in (open-input-file filename))
+  (define old-registry (deserialize (read registry-in)))
+  (close-input-port registry-in))
+
+(define (report current-squares old-registry)
+  (displayln (string-append "found this many: " (number->string (length current-squares)))))
+
+(define (report-again new-registry merge-squares)
+  (displayln (string-append "discovered: "
+                            (number->string (length (get-net-new new-registry merge-squares))))))
+
+(define (save-temp data filename)
+  (define data-out (open-output-file filename #:exists 'replace))
+  (write (serialize data) data-out)
+  (close-output-port data-out))
+
+(define (overwrite)
+  (displayln "overwriting previous database")
+  (rename-file-or-directory "bookshelf-temp.bin" "bookshelf.bin" #t)
+  (rename-file-or-directory "registry-temp.bin" "registry.bin" #t)
+  (displayln "finished saving."))
+
 (define (run-with-filename filename)
-    (displayln "loading previous state.")
-    (define bookshelf-in (open-input-file "bookshelf.bin"))
-    (define old-book (deserialize (read bookshelf-in)))
-    (close-input-port bookshelf-in)
+  (displayln "loading previous state.")
+  (define old-registry (load "registry.bin"))
+  (define old-book (load "bookshelf.bin"))
+  (displayln (string-append "running filename: " filename))
+  (define current-book (make-book-from-file filename))
+  (define current-squares (make-all-squares current-book))
+  (report current-squares old-registry)
+  (define new-registry (registry-add old-registry current-squares))
+  (define new-book (combine-books old-book current-book))
+  (define merge-squares (new-squares old-book current-book new-book))
+  (report-again new-registry merge-squares)
+  (define merge-registry (registry-add new-registry merge-squares))
+  (save-temp new-book "bookshelf-temp.bin")
+  (save-temp merge-registry "registry-temp.bin")
+  (overwrite))
 
-    (define registry-in (open-input-file "registry.bin"))
-    (define old-registry (deserialize (read registry-in)))
-    (close-input-port registry-in)
-    
-    (displayln "running filename: ")
-    (displayln filename)
-    
-    (define current-book (make-book-from-file filename))
-    (displayln "finished reading file.")
+(define (first-half l)
+  (take l (floor (/ (length l) 2))))
 
-    (displayln "finding new squares.")
-    (define current-squares (make-all-squares current-book))
+(define (second-half l)
+  (drop l (floor (/ (length l) 2))))
 
-    (displayln "found this many: ")
-    (displayln (length current-squares))
-    ;(displayln (make-all-squares current-book))
-    
-    (displayln "adding this many squares: ")
-    (displayln (length (get-net-new old-registry current-squares)))
+(define (binary-add numbers)
+  (cond
+    [(equal? (length numbers) 1) (car numbers)]
+    [(equal? (length numbers) 2) (+ (car numbers) (cadr numbers))]
+    [else (+ (binary-add (first-half numbers)) (binary-add (second-half numbers)))]))
 
-    (displayln "adding to registry.")
-    (define new-registry (registry-add old-registry current-squares))
-    
-    (displayln "combining library.")
-    (define new-book (combine-books old-book current-book))
+(struct result (filename bookshelf registry))
 
-    (displayln "calculating squares discovered via merge.")
-    (define merge-squares (new-squares old-book current-book new-book))
-    
-    (displayln "discovered: ")
-    (displayln (length (get-net-new new-registry merge-squares)))
-    ;(displayln (get-net-new new-registry merge-squares))
+(define (binary-merge results)
+  (cond
+    [(equal? (length results) 1) (car results)]
+    [(equal? (length results) 2) (time (double-fold (car results) (cadr results)))]
+    [else (double-fold (binary-merge (first-half results)) (binary-merge (second-half results)))]))
 
-    (displayln "updating registry with merge information.")
-    (define merge-registry (registry-add new-registry merge-squares))
-    
-    (displayln "saving bookshelf.")
-    (define bookshelf-out (open-output-file "bookshelf-temp.bin" #:exists 'replace))
-    (write (serialize new-book) bookshelf-out)
-    (close-output-port bookshelf-out)
- 
-    (displayln "saving registry.")
-    (displayln "serializing registry.")
-    (define to_write (serialize merge-registry))
-    (displayln "saving registry to file.")
-    (define registry-out (open-output-file "registry-temp.bin" #:exists 'replace))
-    (write to_write registry-out)
-    (close-output-port registry-out)
-    (displayln "finished saving registry.")
-    
-    (displayln "overwriting previous database")
-    (rename-file-or-directory "bookshelf-temp.bin" "bookshelf.bin" #t)
-    (rename-file-or-directory "registry-temp.bin" "registry.bin" #t)
-    (displayln "finished saving."))
-  
-  
+(define (file-to-result filename)
+  (time (single-fold (result filename (make-book-from-file filename) (make-registry)))))
 
-(define (go)
-    (displayln "loading previous state.")
-    (define bookshelf-in (open-input-file "bookshelf.bin"))
-    (define old-book (deserialize (read bookshelf-in)))
-    (close-input-port bookshelf-in)
+(define (single-fold r)
+  (displayln (string-append "single running: " (result-filename r)))
+  (define current-book (result-bookshelf r))
+  (define current-squares (make-all-squares current-book))
+  (define new-registry (registry-add (make-registry) current-squares))
+  (report current-squares (make-registry))
+  (result (result-filename r) current-book new-registry))
 
-    (define registry-in (open-input-file "registry.bin"))
-    (define old-registry (deserialize (read registry-in)))
-    (close-input-port registry-in)
-    
-    (display "input a filename or quit: ")
-    (define filename (read-line (current-input-port) 'any))
-    
-    (define current-book (make-book-from-file filename))
-    (displayln "finished reading file.")
+(define (double-fold res1 res2)
+  (displayln
+   (string-append "double running: " (result-filename res1) " merging with " (result-filename res2)))
 
-    (displayln "finding new squares.")
-    (define current-squares (make-all-squares current-book))
+  (define old-registry (result-registry res1))
+  (define old-book (result-bookshelf res1))
 
-    (displayln "found this many: ")
-    (displayln (length current-squares))
-    ;(displayln (make-all-squares current-book))
-    
-    (displayln "adding this many squares: ")
-    (displayln (length (get-net-new old-registry current-squares)))
+  (define current-book (result-bookshelf res2))
+  (define current-registry (result-registry res2))
 
-    (displayln "adding to registry.")
-    (define new-registry (registry-add old-registry current-squares))
-    
-    (displayln "combining library.")
-    (define new-book (combine-books old-book current-book))
+  (define current-squares (get-squares current-registry))
 
-    (displayln "calculating squares discovered via merge.")
-    (define merge-squares (new-squares old-book current-book new-book))
-    
-    (displayln "discovered: ")
-    (displayln (length (get-net-new new-registry merge-squares)))
-    ;(displayln (get-net-new new-registry merge-squares))
+  (define new-registry (registry-add old-registry current-squares))
+  (displayln (string-append "adding this many squares: "
+                            (number->string (length (get-net-new old-registry current-squares)))
+                            " out of a possible: "
+                            (number->string (length current-squares))
+                            " (" (number->string (* 100 (/ (length (get-net-new old-registry current-squares)) (exact->inexact (length current-squares))))) "%)"))
+  (define new-book (combine-books old-book current-book))
+  (displayln "merging...")
+  (define merge-squares (new-squares old-book current-book new-book))
+  (report-again new-registry merge-squares)
+  (define merge-registry (registry-add new-registry merge-squares))
+  (result (string-append (result-filename res1) "+" (result-filename res2)) new-book merge-registry))
 
-    (displayln "updating registry with merge information.")
-    (define merge-registry (registry-add new-registry merge-squares))
-    
-    (displayln "saving bookshelf.")
-    (define bookshelf-out (open-output-file "bookshelf-temp.bin" #:exists 'replace))
-    (write (serialize new-book) bookshelf-out)
-    (close-output-port bookshelf-out)
- 
-    (displayln "saving registry.")
-    (displayln "serializing registry.")
-    (define to_write (serialize merge-registry))
-    (displayln "saving registry to file.")
-    (define registry-out (open-output-file "registry-temp.bin" #:exists 'replace))
-    (write to_write registry-out)
-    (close-output-port registry-out)
-    (displayln "finished saving registry.")
-    
-    (displayln "overwriting previous database")
-    (rename-file-or-directory "bookshelf-temp.bin" "bookshelf.bin" #t)
-    (rename-file-or-directory "registry-temp.bin" "registry.bin" #t)
-    (displayln "finished saving."))
+(bootstrap-binary)
 
-(bootstrap-run-list)
-
+;(bootstrap-run-list)

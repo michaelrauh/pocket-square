@@ -9,7 +9,7 @@
 (struct line (lhs rhs))
 (struct point (data))
 
-(serializable-struct book (raw splines lines points) #:transparent)
+(serializable-struct book (raw splines lines points))
 
 (define (example-book)
   (make-book-from-file "minimal-example.txt"))
