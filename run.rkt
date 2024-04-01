@@ -2,7 +2,8 @@
 (require "square.rkt"
          "merge.rkt"
          "book.rkt"
-         "registry.rkt")
+         "registry.rkt"
+         "folder.rkt")
 (require racket/serialize
          racket/trace)
 
@@ -39,9 +40,6 @@
   (define registry-in (open-input-file filename))
   (define old-registry (deserialize (read registry-in)))
   (close-input-port registry-in))
-
-(define (report current-squares old-registry)
-  (displayln (string-append "found this many: " (number->string (length current-squares)))))
 
 (define (report-again new-registry merge-squares)
   (displayln (string-append "discovered: "
@@ -87,8 +85,6 @@
     [(equal? (length numbers) 2) (+ (car numbers) (cadr numbers))]
     [else (+ (binary-add (first-half numbers)) (binary-add (second-half numbers)))]))
 
-(struct result (filename bookshelf registry))
-
 (define (binary-merge results)
   (cond
     [(equal? (length results) 1) (car results)]
@@ -97,14 +93,6 @@
 
 (define (file-to-result filename)
   (time (single-fold (result filename (make-book-from-file filename) (make-registry)))))
-
-(define (single-fold r)
-  (displayln (string-append "single running: " (result-filename r)))
-  (define current-book (result-bookshelf r))
-  (define current-squares (make-all-squares current-book))
-  (define new-registry (registry-add (make-registry) current-squares))
-  (report current-squares (make-registry))
-  (result (result-filename r) current-book new-registry))
 
 (define (double-fold res1 res2)
   (displayln
