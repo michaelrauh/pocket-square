@@ -41,10 +41,6 @@
   (define old-registry (deserialize (read registry-in)))
   (close-input-port registry-in))
 
-(define (report-again new-registry merge-squares)
-  (displayln (string-append "discovered: "
-                            (number->string (length (get-net-new new-registry merge-squares))))))
-
 (define (save-temp data filename)
   (define data-out (open-output-file filename #:exists 'replace))
   (write (serialize data) data-out)
@@ -93,32 +89,6 @@
 
 (define (file-to-result filename)
   (time (single-fold (result filename (make-book-from-file filename) (make-registry)))))
-
-(define (double-fold res1 res2)
-  (displayln
-   (string-append "double running: " (result-filename res1) " merging with " (result-filename res2)))
-
-  (define old-registry (result-registry res1))
-  (define old-book (result-bookshelf res1))
-
-  (define current-book (result-bookshelf res2))
-  (define current-registry (result-registry res2))
-
-  (define current-squares (get-squares current-registry))
-  (define old-squares (get-squares old-registry))
-
-  (define new-registry (registry-add old-registry current-squares))
-  (displayln (string-append "adding this many squares: "
-                            (number->string (length (get-net-new old-registry current-squares)))
-                            " out of a possible: "
-                            (number->string (length current-squares))
-                            " (" (number->string (* 100 (/ (length (get-net-new old-registry current-squares)) (exact->inexact (length current-squares))))) "%) " "to a registry with: " (number->string (length old-squares)) " squares preexisting"))
-  (define new-book (combine-books old-book current-book))
-  (displayln "merging...")
-  (define merge-squares (new-squares old-book current-book new-book))
-  (report-again new-registry merge-squares)
-  (define merge-registry (registry-add new-registry merge-squares))
-  (result (string-append (result-filename res1) "+" (result-filename res2)) new-book merge-registry))
 
 (bootstrap-binary)
 

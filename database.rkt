@@ -3,10 +3,13 @@
 (provide get-smallest-chunk
          hide-file
          delete
-         add-file (struct-out chunk) save-result ingest)
-; todo fix hide file to work
-; todo abstract files. Have it return a receipt and pass data if needed
-; todo add ability to check out data in one go. Check out a chunk for example. This will hide it, and pass data with a receipt for later ack
+         add-file (struct-out chunk) save-result ingest get-smallest-and-largest-result hide-result)
+
+(define (load filename)
+  (define registry-in (open-input-file filename))
+  (define old-registry (deserialize (read registry-in)))
+  (close-input-port registry-in)
+  old-registry)
 
 (define (ingest filename)
   (add-file filename)
@@ -27,17 +30,46 @@
 (struct chunk (name contents))
 
 (define (get-smallest-chunk)
-  (if (empty? (directory-list "db/chunks"))
+  (get-smallest-or-largest-chunk "db/chunks" <))
+
+(define (get-smallest-or-largest-chunk loc comparator)
+  (if (empty? (directory-list loc))
       #f
       (letrec ([name 
         (path->string
          (car (car (sort
-                    (map (λ (f) (cons f (file-size (string-append "db/chunks/" (path->string f)))))
-                         (directory-list "db/chunks/"))
-                    (λ (f s) (< (cdr f) (cdr s)))))))] [contents (read-file (string-append "db/chunks/" name))]) (chunk name contents))))
+                    (map (λ (f) (cons f (file-size (string-append loc (path->string f)))))
+                         (directory-list loc))
+                    (λ (f s) (comparator (cdr f) (cdr s)))))))] [contents (read-file (string-append loc name))]) (chunk name contents))))
+
+(define (get-smallest-or-largest-result loc comparator)
+  (if (empty? (directory-list loc))
+      #f
+      (letrec ([name 
+        (path->string
+         (car (car (sort
+                    (map (λ (f) (cons f (file-size (string-append loc (path->string f)))))
+                         (directory-list loc))
+                    (λ (f s) (comparator (cdr f) (cdr s)))))))]) (load (string-append loc name)))))
+
+(define (get-smallest-result)
+  (get-smallest-or-largest-result "db/results/" <))
+
+(define (get-largest-result)
+  (get-smallest-or-largest-result "db/results/" >))
+  
+
+(define (get-smallest-and-largest-result)
+  (define s (get-smallest-result))
+  (define l (get-largest-result))
+  (if
+   (not (and s l))
+   #f
+   (cons s l)))
+  
 
 (define (save-result r)
-  (define res-out (open-output-file (string-append "db/results/" (result-filename r) "-result")))
+  (define res-out (open-output-file (string-append "db/results/" (result-filename r))))
   (write (serialize r) res-out)
   (close-output-port res-out))
 
@@ -45,6 +77,12 @@
   (displayln filename)
   (let ([new-name (string-append "db/processing/" filename)])
     (rename-file-or-directory (string-append "db/chunks/" filename) new-name)
+    new-name))
+
+(define (hide-result filename)
+  (displayln filename)
+  (let ([new-name (string-append "db/processing-results/" filename)])
+    (rename-file-or-directory (string-append "db/results/" filename) new-name)
     new-name))
 
 (define (delete filename)
