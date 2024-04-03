@@ -39,7 +39,7 @@
   (define merge-squares (new-squares old-book current-book new-book))
   (report-again new-registry merge-squares)
   (define merge-registry (registry-add new-registry merge-squares))
-  (result (string-append (result-filename res1) "+" (result-filename res2)) new-book merge-registry))
+  (result (string-append (result-filename res1)) new-book merge-registry))
 
 (define (report-again new-registry merge-squares)
   (displayln (string-append "discovered: "
