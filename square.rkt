@@ -7,8 +7,6 @@
   ; (hash (hash) a (hash b 1) b (hash c 1) c (hash b 1 c 1) d)) ; todo comment this back in
   (list a b c d))
 
-; todo remove fbbf from regular run. Use only in merge
-
 (define (make-all-squares book)
   (remove-duplicates (apply append (map (λ (a) (make-squares-ffbb book a)) (get-lines book)))))
 
@@ -37,7 +35,3 @@
                        (equal? b b-prime)
                        (not (equal? b c))))
     (make-ortho a b c d))))
-
-(define (example-square) (make-all-squares (example-book)))
-(define (example-square-left) (make-all-squares (example-book-left)))
-(define (example-square-right) (make-all-squares (example-book-right)))

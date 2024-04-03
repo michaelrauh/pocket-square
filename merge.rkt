@@ -13,5 +13,3 @@
                            #:when (friends-do-not-all-match-backward old current line))
                         (make-squares-fbbf combined line)))
                       )))
-
-(define (example-new-square) (new-squares (example-book-left) (example-book-right) (combine-books (example-book-left) (example-book-right))))

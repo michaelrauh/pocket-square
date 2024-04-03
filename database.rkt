@@ -6,7 +6,6 @@
 (provide get-smallest-chunk
          hide-file
          delete
-         add-file
          (struct-out chunk)
          save-result
          ingest
@@ -79,13 +78,11 @@
   (close-output-port res-out))
 
 (define (hide-file filename)
-  (displayln filename)
   (let ([new-name (string-append "db/processing/" filename)])
     (rename-file-or-directory (string-append "db/chunks/" filename) new-name)
     new-name))
 
 (define (hide-result filename)
-  (displayln filename)
   (let ([new-name (string-append "db/processing-results/" filename)])
     (rename-file-or-directory (string-append "db/results/" filename) new-name)
     new-name))

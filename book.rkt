@@ -2,20 +2,14 @@
 (require 2htdp/batch-io
          threading)
 (require racket/serialize)
-(provide project-forward project-backward get-lines example-book example-line make-book-from-text
-         example-book-left example-book-right combine-books new-lines make-book-from-file empty-book
+(provide project-forward project-backward get-lines make-book-from-text
+          combine-books new-lines empty-book
          friends-do-not-all-match-backward friends-do-not-all-match-forward)
 (struct spline (points))
 (struct line (lhs rhs))
 (struct point (data))
 
 (serializable-struct book (raw splines lines points))
-
-(define (example-book)
-  (make-book-from-file "minimal-example.txt"))
-
-(define (make-book-from-file filename)
-  (make-book (read-file filename)))
 
 (define (make-book-from-text t)
   (make-book t))
@@ -59,15 +53,6 @@
 (define (get-lines book)
   (book-lines book))
 
-(define (example-line)
-  (list "a" "b"))
-
-(define (example-book-left)
-  (make-book-from-text "a b. c d. a c. b d. e f. g h."))
-
-(define (example-book-right)
-  (make-book-from-text "a b. c d. a c. b d. e g. f h."))
-
 (define (combine-books left right)
   (book
    (string-append (book-raw left) "\n" (book-raw right))
@@ -77,8 +62,6 @@
 
 (define (new-lines old new)
   (set-subtract (book-lines new) (book-lines old)))
-
-(define (example-combined-book) (combine-books (example-book-left) (example-book-right)))
 
 (define (empty-book) (book "" '() '() '()))
 
